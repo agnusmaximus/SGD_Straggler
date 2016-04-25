@@ -73,14 +73,16 @@ def compute_loss(row, model):
     return (estimation - b_value)**2
 
 # Main function for distributed least squares regression
-def SGD_Straggler(sc, data, model_size, n_workers, n_iters=20, n_epochs=10, stepsize=1e-7):
+def SGD_Straggler(sc, data, model_size, n_workers, n_iters=50, n_epochs=100, stepsize=1e-7, reduction_factor=.95):
     main_model = initial_model(model_size)
     data_rdd = sc.parallelize(data, n_workers)
     for iteration in range(n_iters):
         loss = data_rdd.map(lambda x: compute_loss(x, main_model)).reduce(lambda x,y:x+y) / len(data)
-        print("Loss: %f" % loss)
-        summed_model = data_rdd.mapPartitions(lambda x : sgd(main_model, x, n_epochs, stepsize)).reduce(sum_models)
+        print("Loss: %f" % loss, main_model)
+        computed_models = data_rdd.mapPartitions(lambda x : sgd(main_model, x, n_epochs, stepsize))
+        summed_model = computed_models.reduce(sum_models)
         average_model(summed_model, main_model, n_workers)
+        stepsize *= reduction_factor
     print(main_model)
 
 if __name__=="__main__":
