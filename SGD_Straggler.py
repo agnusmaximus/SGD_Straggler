@@ -79,8 +79,7 @@ def SGD_Straggler(sc, data, model_size, n_workers, n_iters=50, n_epochs=100, ste
     for iteration in range(n_iters):
         loss = data_rdd.map(lambda x: compute_loss(x, main_model)).reduce(lambda x,y:x+y) / len(data)
         print("Loss: %f" % loss, main_model)
-        computed_models = data_rdd.mapPartitions(lambda x : sgd(main_model, x, n_epochs, stepsize))
-        summed_model = computed_models.reduce(sum_models)
+        summed_model = data_rdd.mapPartitions(lambda x : sgd(main_model, x, n_epochs, stepsize)).reduce(sum_models)
         average_model(summed_model, main_model, n_workers)
         stepsize *= reduction_factor
     print(main_model)
